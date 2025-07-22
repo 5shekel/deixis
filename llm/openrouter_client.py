@@ -194,7 +194,7 @@ class OpenRouterClient:
             response = self.client.chat.completions.create(
                 model="openai/gpt-3.5-turbo",
                 messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
+                max_tokens=16
             )
             logger.info("OpenRouter API connection test successful")
             return True

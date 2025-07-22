@@ -86,7 +86,7 @@ def test_model_access():
                 response = client.client.chat.completions.create(
                     model=model_name,
                     messages=[{"role": "user", "content": test_prompt}],
-                    max_tokens=10,
+                    max_tokens=16,
                     temperature=0.1
                 )
                 
