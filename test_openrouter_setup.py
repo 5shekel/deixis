@@ -26,7 +26,8 @@ def test_environment():
     config = Config()
     if config.OPENROUTER_API_KEY:
         print("✅ OPENROUTER_API_KEY configured")
-        print(f"   Key starts with: {config.OPENROUTER_API_KEY[:8]}...")
+        key = config.OPENROUTER_API_KEY
+        print(f"   Key: {key[:8]}...{key[-4:]}")
     else:
         print("❌ OPENROUTER_API_KEY not found in .env")
         return False
