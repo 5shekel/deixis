@@ -187,20 +187,14 @@ def show_concurrent_experiment():
         from config import Config
         config = Config()
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if config.openai_api_key:
-                st.success("✅ OpenAI API Key configured")
-            else:
-                st.error("❌ OpenAI API Key missing")
-        
-        with col2:
-            if config.openrouter_api_key:
-                st.success("✅ OpenRouter API Key configured")
-            else:
-                st.warning("⚠️ OpenRouter API Key missing (optional)")
-    except:
-        st.error("❌ Configuration error - check .env file")
+        if config.OPENROUTER_API_KEY:
+            st.success("✅ OpenRouter API Key configured")
+            st.info("🔄 All models (GPT-4, Claude 3 Sonnet, DeepSeek R1) will be accessed via OpenRouter")
+        else:
+            st.error("❌ OpenRouter API Key missing")
+            st.error("Please add OPENROUTER_API_KEY to your .env file")
+    except Exception as e:
+        st.error(f"❌ Configuration error - check .env file: {e}")
     
     # Run experiment
     if st.button("🚀 Start Concurrent Experiment", type="primary"):

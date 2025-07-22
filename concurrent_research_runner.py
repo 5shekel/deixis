@@ -18,7 +18,6 @@ import pandas as pd
 from data.research_prompts import load_research_prompts, get_all_dilemma_prompt_combinations
 from analysis.research_coding import ResearchCoder
 from utils.research_logger import ResearchLogger
-from llm.openai_client import OpenAIClient
 from llm.openrouter_client import OpenRouterClient
 from models.schemas import LLMModel, LLMResponse, DeicticFraming
 from config import Config
@@ -33,27 +32,22 @@ class ConcurrentResearchRunner:
         self.coder = ResearchCoder()
         self.max_concurrent = max_concurrent
         
-        # Initialize LLM clients
-        try:
-            self.openai_client = OpenAIClient()
-            print("✅ OpenAI client initialized")
-        except Exception as e:
-            print(f"⚠️  OpenAI client error: {e}")
-            self.openai_client = None
-            
+        # Initialize OpenRouter client only (supports all models including GPT-4)
         try:
             self.openrouter_client = OpenRouterClient()
             print("✅ OpenRouter client initialized")
         except Exception as e:
-            print(f"⚠️  OpenRouter client error: {e}")
+            print(f"❌ OpenRouter client error: {e}")
+            print("Please ensure OPENROUTER_API_KEY is set in your .env file")
             self.openrouter_client = None
+            raise ValueError("OpenRouter client is required but failed to initialize")
         
-        # Default models to test (only include available ones)
-        available_models = []
-        if self.openai_client:
-            available_models.extend([LLMModel.GPT4])
-        if self.openrouter_client:
-            available_models.extend([LLMModel.CLAUDE_3_SONNET, LLMModel.DEEPSEEK_R1])
+        # Default models to test (all via OpenRouter)
+        available_models = [
+            LLMModel.GPT4,
+            LLMModel.CLAUDE_3_SONNET, 
+            LLMModel.DEEPSEEK_R1
+        ]
             
         self.models = models or available_models
         
@@ -203,19 +197,21 @@ class ConcurrentResearchRunner:
                 source='concurrent_experiment'
             )
             
-            # Generate response based on model - STATELESS API CALLS
-            response_text = None
-            if model == LLMModel.GPT4 and self.openai_client:
-                response_text = self._call_openai_sync(combination['prompt_text'])
-            elif model in [LLMModel.CLAUDE_3_SONNET, LLMModel.DEEPSEEK_R1] and self.openrouter_client:
-                model_map = {
-                    LLMModel.CLAUDE_3_SONNET: "anthropic/claude-3-sonnet",
-                    LLMModel.DEEPSEEK_R1: "deepseek/deepseek-r1"
-                }
+            # Generate response using OpenRouter for all models - STATELESS API CALLS
+            model_map = {
+                LLMModel.GPT4: "openai/gpt-4",
+                LLMModel.CLAUDE_3_SONNET: "anthropic/claude-3-sonnet",
+                LLMModel.DEEPSEEK_R1: "deepseek/deepseek-r1"
+            }
+            
+            if model in model_map and self.openrouter_client:
+                openrouter_model = model_map[model]
                 response_text = self._call_openrouter_sync(
                     combination['prompt_text'], 
-                    model_map.get(model, "anthropic/claude-3-sonnet")
+                    openrouter_model
                 )
+            else:
+                response_text = None
             
             if not response_text:
                 return {
@@ -278,22 +274,6 @@ class ConcurrentResearchRunner:
                 'coding': None,
                 'error': {'task': task, 'error': str(e)}
             }
-    
-    def _call_openai_sync(self, prompt: str) -> Optional[str]:
-        """Make synchronous call to OpenAI API."""
-        try:
-            # Use the existing sync method
-            messages = [{"role": "user", "content": prompt}]
-            response = self.openai_client.client.chat.completions.create(
-                model="gpt-4",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2000
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"OpenAI API error: {e}")
-            return None
     
     def _call_openrouter_sync(self, prompt: str, model: str) -> Optional[str]:
         """Make synchronous call to OpenRouter API."""
