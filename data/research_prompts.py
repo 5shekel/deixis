@@ -92,6 +92,15 @@ def get_all_dilemma_prompt_combinations() -> List[Dict]:
     prompts = load_research_prompts()
     combinations = []
     
+    for prompt in prompts:
+        combinations.append({
+            'dilemma_title': prompt.dilemma_title,
+            'framing': prompt.framing,
+            'prompt_text': prompt.prompt_text,
+            'prompt_id': prompt.id
+        })
+    
+    return combinations
 
 def get_prompt_by_dilemma_and_type(dilemma_title: str, prompt_type: str) -> Optional[str]:
     """Get a specific prompt by dilemma title and prompt type."""
@@ -126,15 +135,6 @@ def map_prompt_type_to_framing(prompt_type: str) -> Optional[DeicticFraming]:
     }
     
     return mapping.get(prompt_type)
-    for prompt in prompts:
-        combinations.append({
-            'dilemma_title': prompt.dilemma_title,
-            'framing': prompt.framing,
-            'prompt_text': prompt.prompt_text,
-            'prompt_id': prompt.id
-        })
-    
-    return combinations
 
 def get_research_statistics() -> Dict:
     """Get statistics about the research prompt dataset."""
